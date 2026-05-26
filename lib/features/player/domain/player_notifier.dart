@@ -53,6 +53,7 @@ class PlayerNotifier extends AsyncNotifier<PlayerState> {
         sentences: sentences,
         currentSentenceIndex: startIdx,
         speed: savedSpeed,
+        continuousPlay: ref.read(continuousPlayProvider),
       );
     });
   }
@@ -150,7 +151,9 @@ class PlayerNotifier extends AsyncNotifier<PlayerState> {
   void toggleContinuousPlay() {
     final current = state.value;
     if (current == null) return;
-    state = AsyncData(current.copyWith(continuousPlay: !current.continuousPlay));
+    final newValue = !current.continuousPlay;
+    state = AsyncData(current.copyWith(continuousPlay: newValue));
+    ref.read(continuousPlayProvider.notifier).set(newValue);
   }
 
   Future<void> setSpeed(double speed) async {

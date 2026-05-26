@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import '../core/storage/database.dart';
 import '../core/storage/audio_file_repository.dart';
@@ -43,3 +44,26 @@ final audioFileListProvider = FutureProvider<List<AudioFile>>((ref) {
   final repo = ref.read(audioFileRepositoryProvider);
   return repo.getAll();
 });
+
+final continuousPlayProvider = StateNotifierProvider<ContinuousPlayNotifier, bool>((ref) {
+  return ContinuousPlayNotifier();
+});
+
+class ContinuousPlayNotifier extends StateNotifier<bool> {
+  static const _key = 'continuous_play';
+
+  ContinuousPlayNotifier() : super(true) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getBool(_key) ?? true;
+  }
+
+  Future<void> set(bool value) async {
+    state = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_key, value);
+  }
+}
