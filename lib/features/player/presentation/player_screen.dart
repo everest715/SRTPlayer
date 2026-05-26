@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import '../../../providers/app_providers.dart';
 import '../domain/player_notifier.dart';
 import 'sentence_card.dart';
@@ -123,7 +124,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 onPrev: () => notifier.prevSentence(),
                 onNext: () => notifier.nextSentence(),
                 onToggleLoop: () => notifier.toggleLooping(),
-                onToggleContinuousPlay: () => notifier.toggleContinuousPlay(),
+                onToggleContinuousPlay: () {
+                  notifier.toggleContinuousPlay();
+                  final cp = ref.read(playerProvider).value?.continuousPlay ?? true;
+                  Fluttertoast.showToast(msg: cp ? '连续播放：开' : '连续播放：关');
+                },
                 onSpeedTap: () => _showSpeedSheet(context),
               ),
             ],
