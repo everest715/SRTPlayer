@@ -10,6 +10,7 @@ class AudioPlayerService {
   PlayerPlaybackState _state = PlayerPlaybackState.idle;
   bool _looping = false;
   bool _sessionConfigured = false;
+  bool _seeking = false;
 
   PlayerPlaybackState get state => _state;
   Duration get position => _player.position;
@@ -21,6 +22,7 @@ class AudioPlayerService {
   Stream<PlayerPlaybackState> get stateStream =>
       _player.playbackEventStream.map((_) => _state);
   Stream<Duration> get positionStream => _player.positionStream;
+  Stream<bool> get playingStream => _player.playingStream;
   Stream<void> get playerCompleteStream =>
       _player.playerStateStream.where((s) => s.processingState == ProcessingState.completed);
 
@@ -44,23 +46,25 @@ class AudioPlayerService {
     await session.configure(const AudioSessionConfiguration.speech());
 
     session.interruptionEventStream.listen((event) {
-      if (event.begin) {
+      if (event.begin && !_seeking) {
         pause();
       }
     });
 
     session.becomingNoisyEventStream.listen((_) {
-      pause();
+      if (!_seeking) pause();
     });
   }
 
   Future<void> playSegment(int startMs, int endMs) async {
+    _seeking = true;
     if (_player.playing) {
       await _player.pause();
     }
     await _player.seek(Duration(milliseconds: startMs));
     _state = _looping ? PlayerPlaybackState.looping : PlayerPlaybackState.playing;
     await _player.play();
+    _seeking = false;
   }
 
   Future<void> play() async {

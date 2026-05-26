@@ -11,14 +11,15 @@ final playerProvider = AsyncNotifierProvider<PlayerNotifier, PlayerState>(
 class PlayerNotifier extends AsyncNotifier<PlayerState> {
   AudioPlayerService? _audioService;
   StreamSubscription? _positionSub;
-  StreamSubscription? _completeSub;
+  StreamSubscription? _playingSub;
   int? _currentEndMs;
+  bool _transitioning = false;
 
   @override
   Future<PlayerState> build() async {
     ref.onDispose(() {
       _positionSub?.cancel();
-      _completeSub?.cancel();
+      _playingSub?.cancel();
       _audioService?.dispose();
     });
     return const PlayerState(audioFileId: -1);
@@ -59,9 +60,24 @@ class PlayerNotifier extends AsyncNotifier<PlayerState> {
   }
 
   void _listenToAudioEvents() {
+    // 监听 just_audio 的实际播放状态，保持 UI 同步
+    _playingSub = _audioService!.playingStream.listen((isPlaying) {
+      if (_transitioning) return;
+      final current = state.value;
+      if (current == null) return;
+
+      if (isPlaying && current.status == PlayerPlaybackStatus.paused) {
+        state = AsyncData(current.copyWith(
+          status: current.looping ? PlayerPlaybackStatus.looping : PlayerPlaybackStatus.playing,
+        ));
+      } else if (!isPlaying && (current.status == PlayerPlaybackStatus.playing || current.status == PlayerPlaybackStatus.looping)) {
+        state = AsyncData(current.copyWith(status: PlayerPlaybackStatus.paused));
+      }
+    });
+
     _positionSub = _audioService!.positionStream.listen((pos) {
       final current = state.value;
-      if (current == null || _currentEndMs == null) return;
+      if (current == null || _currentEndMs == null || _transitioning) return;
 
       if (pos.inMilliseconds >= _currentEndMs! - 50) {
         _currentEndMs = null;
@@ -80,8 +96,9 @@ class PlayerNotifier extends AsyncNotifier<PlayerState> {
 
     final sentence = current.sentences[index];
     _currentEndMs = null;
+    _transitioning = true;
 
-    // 立即更新 UI 状态，避免 await 期间显示旧状态
+    // 立即更新 UI 状态
     state = AsyncData(current.copyWith(
       currentSentenceIndex: index,
       status: current.looping ? PlayerPlaybackStatus.looping : PlayerPlaybackStatus.playing,
@@ -89,7 +106,16 @@ class PlayerNotifier extends AsyncNotifier<PlayerState> {
     ));
 
     await _audioService!.playSegment(sentence.startTimeMs, sentence.endTimeMs);
+    _transitioning = false;
     _currentEndMs = sentence.endTimeMs;
+
+    // 确保 playSegment 完成后状态与实际一致
+    final afterPlay = state.value;
+    if (afterPlay != null && afterPlay.status != PlayerPlaybackStatus.playing && afterPlay.status != PlayerPlaybackStatus.looping) {
+      state = AsyncData(afterPlay.copyWith(
+        status: afterPlay.looping ? PlayerPlaybackStatus.looping : PlayerPlaybackStatus.playing,
+      ));
+    }
 
     _saveProgress();
   }
@@ -112,12 +138,10 @@ class PlayerNotifier extends AsyncNotifier<PlayerState> {
     final current = state.value;
     if (current == null) return;
 
-    final audioState = _audioService!.state;
-
-    if (audioState == PlayerPlaybackState.playing || audioState == PlayerPlaybackState.looping) {
+    if (current.status == PlayerPlaybackStatus.playing || current.status == PlayerPlaybackStatus.looping) {
       await _audioService!.pause();
       state = AsyncData(current.copyWith(status: PlayerPlaybackStatus.paused));
-    } else if (audioState == PlayerPlaybackState.paused) {
+    } else if (current.status == PlayerPlaybackStatus.paused) {
       await _audioService!.play();
       state = AsyncData(current.copyWith(
         status: current.looping ? PlayerPlaybackStatus.looping : PlayerPlaybackStatus.playing,
