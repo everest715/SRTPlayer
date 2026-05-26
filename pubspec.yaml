@@ -60,6 +60,8 @@ dependencies:
   diff_match_patch: ^0.4.1
   fluttertoast: ^8.2.12
   permission_handler: ^12.0.1
+  sqflite_common_ffi: ^2.3.7+1
+  just_audio_windows: ^0.2.3
 
 dev_dependencies:
   flutter_test:

@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
 
@@ -24,13 +26,20 @@ class AudioPlayerService {
 
   Future<void> setUrl(String uri) async {
     await _configureSession();
-    await _player.setUrl(uri);
+    // Windows/Linux 本地文件用 setFilePath 避免 URI 格式问题
+    if (!uri.startsWith('http') && !uri.startsWith('asset')) {
+      await _player.setFilePath(uri);
+    } else {
+      await _player.setUrl(uri);
+    }
     _state = PlayerPlaybackState.idle;
   }
 
   Future<void> _configureSession() async {
     if (_sessionConfigured) return;
     _sessionConfigured = true;
+    // audio_session 不支持 Windows/Linux
+    if (Platform.isWindows || Platform.isLinux) return;
     final session = await AudioSession.instance;
     await session.configure(const AudioSessionConfiguration.speech());
 
