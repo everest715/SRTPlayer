@@ -52,9 +52,10 @@ class ControlBar extends StatelessWidget {
             onPressed: onPrev,
             tooltip: '上一句',
           ),
-          FloatingActionButton.small(
+          IconButton(
+            icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
+            iconSize: 36,
             onPressed: onPlayPause,
-            child: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
           ),
           IconButton(
             icon: const Icon(Icons.skip_next),
