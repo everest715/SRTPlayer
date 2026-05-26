@@ -14,38 +14,38 @@ class BatchImportResult {
   BatchImportResult({required this.successCount, required this.failCount, required this.errors});
 }
 
+class PendingFile {
+  final String audioPath;
+  final String? srtPath;
+  PendingFile(this.audioPath, this.srtPath);
+}
+
 class BatchImportService {
   final AudioFileRepository _audioFileRepo;
   final SentenceRepository _sentenceRepo;
 
   BatchImportService(this._audioFileRepo, this._sentenceRepo);
 
-  Future<BatchImportResult> importFolder(String folderPath) async {
+  Future<BatchImportResult> importFiles(List<PendingFile> pendingFiles) async {
     int success = 0;
     int fail = 0;
     final errors = <String>[];
 
-    final dir = Directory(folderPath);
-    if (!dir.existsSync()) {
-      return BatchImportResult(successCount: 0, failCount: 0, errors: ['目录不存在']);
-    }
-
-    final mp3Files = dir.listSync()
-        .where((f) => p.extension(f.path).toLowerCase() == '.mp3')
-        .toList();
-
-    for (final mp3File in mp3Files) {
+    for (final pf in pendingFiles) {
       try {
-        final fileName = p.basenameWithoutExtension(mp3File.path);
-        final srtPath = p.join(dir.path, '$fileName.srt');
+        final fileName = p.basenameWithoutExtension(pf.audioPath);
 
-        if (!File(srtPath).existsSync()) {
+        String? srtContent;
+        if (pf.srtPath != null && File(pf.srtPath!).existsSync()) {
+          srtContent = await File(pf.srtPath!).readAsString();
+        }
+
+        if (srtContent == null) {
           errors.add('$fileName: 未找到匹配的 SRT 文件');
           fail++;
           continue;
         }
 
-        final srtContent = await File(srtPath).readAsString();
         final parseResult = SrtParser.parseWithErrors(srtContent);
         if (parseResult.entries.isEmpty) {
           errors.add('$fileName: SRT 解析结果为空');
@@ -55,8 +55,8 @@ class BatchImportService {
 
         final dbFile = await _audioFileRepo.create(AudioFile(
           fileName: fileName,
-          audioUri: mp3File.path,
-          srtUri: srtPath,
+          audioUri: pf.audioPath,
+          srtUri: pf.srtPath,
           createdAt: DateTime.now(),
         ));
 
@@ -71,7 +71,7 @@ class BatchImportService {
 
         success++;
       } catch (e) {
-        errors.add('${p.basename(mp3File.path)}: $e');
+        errors.add('${p.basename(pf.audioPath)}: $e');
         fail++;
       }
     }
