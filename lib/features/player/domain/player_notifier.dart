@@ -63,6 +63,8 @@ class PlayerNotifier extends AsyncNotifier<PlayerState> {
       if (current == null) return;
 
       if (_currentEndMs != null && pos.inMilliseconds >= _currentEndMs! - 50) {
+        // Clamp position to sentence end so progress bar reaches 100%
+        state = AsyncData(current.copyWith(positionMs: _currentEndMs!));
         _onSentenceComplete();
         return;
       }

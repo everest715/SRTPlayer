@@ -89,9 +89,12 @@ class SrtParser {
         timeMatch.group(5)!, timeMatch.group(6)!, timeMatch.group(7)!, timeMatch.group(8)!,
       );
 
-      final text = lines.length > 2
+      final rawText = lines.length > 2
           ? lines.sublist(2).join('\n').trim()
           : '';
+
+      // Strip HTML tags (e.g. <font color="#ffff00"><i>word</i></font>)
+      final text = rawText.replaceAll(RegExp(r'<[^>]+>'), '');
 
       entries.add(ParsedSentence(
         index: index,
