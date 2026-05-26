@@ -110,6 +110,11 @@ class PlayerNotifier extends AsyncNotifier<PlayerState> {
         current.status == PlayerPlaybackStatus.looping) {
       await _audioService!.pause();
       state = AsyncData(current.copyWith(status: PlayerPlaybackStatus.paused));
+    } else if (current.status == PlayerPlaybackStatus.paused) {
+      await _audioService!.play();
+      state = AsyncData(current.copyWith(
+        status: current.looping ? PlayerPlaybackStatus.looping : PlayerPlaybackStatus.playing,
+      ));
     } else {
       await playSentence(current.currentSentenceIndex);
     }
