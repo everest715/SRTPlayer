@@ -15,19 +15,12 @@ class BatchImportResult {
   BatchImportResult({required this.successCount, required this.failCount, required this.errors, this.skippedCount = 0});
 }
 
-class PendingFile {
-  final String audioPath;
-  final String? srtPath;
-  PendingFile(this.audioPath, this.srtPath);
-}
-
 class BatchImportService {
   final AudioFileRepository _audioFileRepo;
   final SentenceRepository _sentenceRepo;
 
   BatchImportService(this._audioFileRepo, this._sentenceRepo);
 
-  /// Import by scanning a folder for MP3+SRT pairs
   Future<BatchImportResult> importFolder(String folderPath) async {
     int success = 0;
     int fail = 0;
@@ -47,8 +40,7 @@ class BatchImportService {
       return BatchImportResult(successCount: 0, failCount: 0, errors: ['目录中没有 MP3 文件']);
     }
 
-    final existingFiles = await _audioFileRepo.getAll();
-    final existingNames = existingFiles.map((f) => f.fileName).toSet();
+    final existingNames = (await _audioFileRepo.getAll()).map((f) => f.fileName).toSet();
 
     for (final mp3File in mp3Files) {
       try {
@@ -60,15 +52,13 @@ class BatchImportService {
         }
 
         final srtPath = p.join(dir.path, '$fileName.srt');
-
         if (!File(srtPath).existsSync()) {
           errors.add('$fileName: 未找到匹配的 SRT 文件');
           fail++;
           continue;
         }
 
-        final srtContent = await File(srtPath).readAsString();
-        final parseResult = SrtParser.parseWithErrors(srtContent);
+        final parseResult = SrtParser.parseWithErrors(await File(srtPath).readAsString());
         if (parseResult.entries.isEmpty) {
           errors.add('$fileName: SRT 解析结果为空');
           fail++;
@@ -82,81 +72,17 @@ class BatchImportService {
           createdAt: DateTime.now(),
         ));
 
-        final sentences = parseResult.entries.map((e) => Sentence(
+        await _sentenceRepo.saveAll(parseResult.entries.map((e) => Sentence(
           audioFileId: dbFile.id!,
           index: e.index,
           startTimeMs: e.startTimeMs,
           endTimeMs: e.endTimeMs,
           text: e.text,
-        )).toList();
-        await _sentenceRepo.saveAll(sentences);
+        )).toList());
 
         success++;
       } catch (e) {
         errors.add('${p.basename(mp3File.path)}: $e');
-        fail++;
-      }
-    }
-
-    return BatchImportResult(successCount: success, failCount: fail, errors: errors, skippedCount: skipped);
-  }
-
-  /// Import from pre-selected file pairs
-  Future<BatchImportResult> importFiles(List<PendingFile> pendingFiles) async {
-    int success = 0;
-    int fail = 0;
-    int skipped = 0;
-    final errors = <String>[];
-
-    final existingFiles = await _audioFileRepo.getAll();
-    final existingNames = existingFiles.map((f) => f.fileName).toSet();
-
-    for (final pf in pendingFiles) {
-      try {
-        final fileName = p.basenameWithoutExtension(pf.audioPath);
-
-        if (existingNames.contains(fileName)) {
-          skipped++;
-          continue;
-        }
-
-        String? srtContent;
-        if (pf.srtPath != null && File(pf.srtPath!).existsSync()) {
-          srtContent = await File(pf.srtPath!).readAsString();
-        }
-
-        if (srtContent == null) {
-          errors.add('$fileName: 未找到匹配的 SRT 文件');
-          fail++;
-          continue;
-        }
-
-        final parseResult = SrtParser.parseWithErrors(srtContent);
-        if (parseResult.entries.isEmpty) {
-          errors.add('$fileName: SRT 解析结果为空');
-          fail++;
-          continue;
-        }
-
-        final dbFile = await _audioFileRepo.create(AudioFile(
-          fileName: fileName,
-          audioUri: pf.audioPath,
-          srtUri: pf.srtPath,
-          createdAt: DateTime.now(),
-        ));
-
-        final sentences = parseResult.entries.map((e) => Sentence(
-          audioFileId: dbFile.id!,
-          index: e.index,
-          startTimeMs: e.startTimeMs,
-          endTimeMs: e.endTimeMs,
-          text: e.text,
-        )).toList();
-        await _sentenceRepo.saveAll(sentences);
-
-        success++;
-      } catch (e) {
-        errors.add('${p.basename(pf.audioPath)}: $e');
         fail++;
       }
     }
