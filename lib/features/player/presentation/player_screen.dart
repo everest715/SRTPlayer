@@ -117,11 +117,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               ControlBar(
                 status: player.status,
                 looping: player.looping,
+                continuousPlay: player.continuousPlay,
                 speed: player.speed,
                 onPlayPause: () => notifier.togglePlayPause(),
                 onPrev: () => notifier.prevSentence(),
                 onNext: () => notifier.nextSentence(),
                 onToggleLoop: () => notifier.toggleLooping(),
+                onToggleContinuousPlay: () => notifier.toggleContinuousPlay(),
                 onSpeedTap: () => _showSpeedSheet(context),
               ),
             ],

@@ -4,22 +4,26 @@ import '../domain/player_state.dart';
 class ControlBar extends StatelessWidget {
   final PlayerPlaybackStatus status;
   final bool looping;
+  final bool continuousPlay;
   final double speed;
   final VoidCallback onPlayPause;
   final VoidCallback onPrev;
   final VoidCallback onNext;
   final VoidCallback onToggleLoop;
+  final VoidCallback onToggleContinuousPlay;
   final VoidCallback onSpeedTap;
 
   const ControlBar({
     super.key,
     required this.status,
     required this.looping,
+    required this.continuousPlay,
     required this.speed,
     required this.onPlayPause,
     required this.onPrev,
     required this.onNext,
     required this.onToggleLoop,
+    required this.onToggleContinuousPlay,
     required this.onSpeedTap,
   });
 
@@ -68,6 +72,14 @@ class ControlBar extends StatelessWidget {
           TextButton(
             onPressed: onSpeedTap,
             child: Text('${speed}x'),
+          ),
+          IconButton(
+            icon: Icon(
+              continuousPlay ? Icons.all_inclusive : Icons.filter_1,
+              color: continuousPlay ? Theme.of(context).colorScheme.primary : null,
+            ),
+            onPressed: onToggleContinuousPlay,
+            tooltip: continuousPlay ? '连续播放：开' : '连续播放：关',
           ),
         ],
       ),

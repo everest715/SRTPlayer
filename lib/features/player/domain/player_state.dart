@@ -9,6 +9,7 @@ class PlayerState {
   final PlayerPlaybackStatus status;
   final double speed;
   final bool looping;
+  final bool continuousPlay;
   final int positionMs;
 
   const PlayerState({
@@ -18,6 +19,7 @@ class PlayerState {
     this.status = PlayerPlaybackStatus.idle,
     this.speed = 1.0,
     this.looping = false,
+    this.continuousPlay = true,
     this.positionMs = 0,
   });
 
@@ -32,6 +34,7 @@ class PlayerState {
     PlayerPlaybackStatus? status,
     double? speed,
     bool? looping,
+    bool? continuousPlay,
     int? positionMs,
   }) {
     return PlayerState(
@@ -41,6 +44,7 @@ class PlayerState {
       status: status ?? this.status,
       speed: speed ?? this.speed,
       looping: looping ?? this.looping,
+      continuousPlay: continuousPlay ?? this.continuousPlay,
       positionMs: positionMs ?? this.positionMs,
     );
   }

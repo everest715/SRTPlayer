@@ -93,7 +93,7 @@ class PlayerNotifier extends AsyncNotifier<PlayerState> {
 
     if (current.looping) {
       playSentence(current.currentSentenceIndex);
-    } else if (current.currentSentenceIndex < current.sentences.length - 1) {
+    } else if (current.continuousPlay && current.currentSentenceIndex < current.sentences.length - 1) {
       playSentence(current.currentSentenceIndex + 1);
     } else {
       state = AsyncData(current.copyWith(status: PlayerPlaybackStatus.idle));
@@ -136,6 +136,12 @@ class PlayerNotifier extends AsyncNotifier<PlayerState> {
       looping: newLooping,
       status: newLooping ? PlayerPlaybackStatus.looping : PlayerPlaybackStatus.playing,
     ));
+  }
+
+  void toggleContinuousPlay() {
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncData(current.copyWith(continuousPlay: !current.continuousPlay));
   }
 
   Future<void> setSpeed(double speed) async {
