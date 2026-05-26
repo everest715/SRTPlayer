@@ -53,13 +53,14 @@ class _BatchImportScreenState extends ConsumerState<BatchImportScreen> {
       ref.invalidate(audioFileListProvider);
 
       if (mounted) {
+        final skipMsg = importResult.skippedCount > 0 ? '，${importResult.skippedCount} 已存在跳过' : '';
         Fluttertoast.showToast(
-          msg: '导入完成：${importResult.successCount} 成功，${importResult.failCount} 失败',
+          msg: '导入完成：${importResult.successCount} 成功，${importResult.failCount} 失败$skipMsg',
           toastLength: Toast.LENGTH_LONG,
         );
         if (importResult.errors.isNotEmpty) {
           _showErrorDialog(importResult.errors);
-        } else if (importResult.successCount > 0) {
+        } else {
           context.go('/');
         }
       }

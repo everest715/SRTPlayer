@@ -9,9 +9,10 @@ import '../../../models/sentence.dart';
 class BatchImportResult {
   final int successCount;
   final int failCount;
+  final int skippedCount;
   final List<String> errors;
 
-  BatchImportResult({required this.successCount, required this.failCount, required this.errors});
+  BatchImportResult({required this.successCount, required this.failCount, required this.errors, this.skippedCount = 0});
 }
 
 class PendingFile {
@@ -30,6 +31,7 @@ class BatchImportService {
   Future<BatchImportResult> importFolder(String folderPath) async {
     int success = 0;
     int fail = 0;
+    int skipped = 0;
     final errors = <String>[];
 
     final dir = Directory(folderPath);
@@ -45,9 +47,18 @@ class BatchImportService {
       return BatchImportResult(successCount: 0, failCount: 0, errors: ['目录中没有 MP3 文件']);
     }
 
+    final existingFiles = await _audioFileRepo.getAll();
+    final existingNames = existingFiles.map((f) => f.fileName).toSet();
+
     for (final mp3File in mp3Files) {
       try {
         final fileName = p.basenameWithoutExtension(mp3File.path);
+
+        if (existingNames.contains(fileName)) {
+          skipped++;
+          continue;
+        }
+
         final srtPath = p.join(dir.path, '$fileName.srt');
 
         if (!File(srtPath).existsSync()) {
@@ -87,18 +98,27 @@ class BatchImportService {
       }
     }
 
-    return BatchImportResult(successCount: success, failCount: fail, errors: errors);
+    return BatchImportResult(successCount: success, failCount: fail, errors: errors, skippedCount: skipped);
   }
 
   /// Import from pre-selected file pairs
   Future<BatchImportResult> importFiles(List<PendingFile> pendingFiles) async {
     int success = 0;
     int fail = 0;
+    int skipped = 0;
     final errors = <String>[];
+
+    final existingFiles = await _audioFileRepo.getAll();
+    final existingNames = existingFiles.map((f) => f.fileName).toSet();
 
     for (final pf in pendingFiles) {
       try {
         final fileName = p.basenameWithoutExtension(pf.audioPath);
+
+        if (existingNames.contains(fileName)) {
+          skipped++;
+          continue;
+        }
 
         String? srtContent;
         if (pf.srtPath != null && File(pf.srtPath!).existsSync()) {
@@ -141,6 +161,6 @@ class BatchImportService {
       }
     }
 
-    return BatchImportResult(successCount: success, failCount: fail, errors: errors);
+    return BatchImportResult(successCount: success, failCount: fail, errors: errors, skippedCount: skipped);
   }
 }
