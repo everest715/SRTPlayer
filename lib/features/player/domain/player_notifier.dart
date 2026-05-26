@@ -80,13 +80,16 @@ class PlayerNotifier extends AsyncNotifier<PlayerState> {
 
     final sentence = current.sentences[index];
     _currentEndMs = null;
-    await _audioService!.playSegment(sentence.startTimeMs, sentence.endTimeMs);
-    _currentEndMs = sentence.endTimeMs;
 
+    // 立即更新 UI 状态，避免 await 期间显示旧状态
     state = AsyncData(current.copyWith(
       currentSentenceIndex: index,
       status: current.looping ? PlayerPlaybackStatus.looping : PlayerPlaybackStatus.playing,
+      positionMs: sentence.startTimeMs,
     ));
+
+    await _audioService!.playSegment(sentence.startTimeMs, sentence.endTimeMs);
+    _currentEndMs = sentence.endTimeMs;
 
     _saveProgress();
   }
