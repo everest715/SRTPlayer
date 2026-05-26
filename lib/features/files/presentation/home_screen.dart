@@ -158,10 +158,6 @@ class _AudioFileListTile extends ConsumerWidget {
         subtitle: file.lastPlayedAt != null
             ? Text('上次：${file.lastPlayedAt!.month}/${file.lastPlayedAt!.day} ${file.lastPlayedAt!.hour}:${file.lastPlayedAt!.minute.toString().padLeft(2, '0')}')
             : null,
-        trailing: IconButton(
-          icon: const Icon(Icons.delete_outline),
-          onPressed: () => _confirmDelete(context, ref),
-        ),
         onTap: file.status == 'offline' ? null : onTap,
       ),
     );
