@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:go_router/go_router.dart';
-import 'package:path/path.dart' as p;
+import 'package:permission_handler/permission_handler.dart';
 import '../../../providers/app_providers.dart';
 import '../data/batch_import_service.dart';
 
@@ -17,43 +17,29 @@ class BatchImportScreen extends ConsumerStatefulWidget {
 class _BatchImportScreenState extends ConsumerState<BatchImportScreen> {
   bool _importing = false;
 
-  Future<void> _importFiles() async {
+  Future<bool> _requestStoragePermission() async {
+    // Android 13+ uses READ_MEDIA_AUDIO
+    if (await Permission.audio.status.isGranted) return true;
+    final result = await Permission.audio.request();
+    if (result.isGranted) return true;
+
+    // Fallback for Android 12 and below
+    if (await Permission.storage.status.isGranted) return true;
+    final fallback = await Permission.storage.request();
+    return fallback.isGranted;
+  }
+
+  Future<void> _importFolder() async {
+    final granted = await _requestStoragePermission();
+    if (!granted) {
+      Fluttertoast.showToast(msg: '需要存储权限才能扫描文件夹');
+      return;
+    }
+
     setState(() => _importing = true);
     try {
-      final audioResult = await FilePicker.platform.pickFiles(
-        type: FileType.audio,
-        allowMultiple: true,
-      );
-      if (audioResult == null || audioResult.files.isEmpty) {
-        setState(() => _importing = false);
-        return;
-      }
-
-      final srtResult = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['srt'],
-        allowMultiple: true,
-      );
-
-      // Build srt map: basename -> path
-      final srtMap = <String, String>{};
-      if (srtResult != null) {
-        for (final f in srtResult.files) {
-          final baseName = p.basenameWithoutExtension(f.name);
-          if (f.path != null) srtMap[baseName] = f.path!;
-        }
-      }
-
-      // Match audio with srt by basename
-      final pendingFiles = <PendingFile>[];
-      for (final af in audioResult.files) {
-        if (af.path == null) continue;
-        final baseName = p.basenameWithoutExtension(af.name);
-        pendingFiles.add(PendingFile(af.path!, srtMap[baseName]));
-      }
-
-      if (pendingFiles.isEmpty) {
-        Fluttertoast.showToast(msg: '未选择有效的音频文件');
+      final folderPath = await FilePicker.platform.getDirectoryPath();
+      if (folderPath == null) {
         setState(() => _importing = false);
         return;
       }
@@ -62,7 +48,7 @@ class _BatchImportScreenState extends ConsumerState<BatchImportScreen> {
         ref.read(audioFileRepositoryProvider),
         ref.read(sentenceRepositoryProvider),
       );
-      final importResult = await service.importFiles(pendingFiles);
+      final importResult = await service.importFolder(folderPath);
 
       ref.invalidate(audioFileListProvider);
 
@@ -118,16 +104,16 @@ class _BatchImportScreenState extends ConsumerState<BatchImportScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.library_music, size: 64, color: Colors.grey),
+            const Icon(Icons.folder_open, size: 64, color: Colors.grey),
             const SizedBox(height: 16),
-            const Text('先选择多个 MP3 文件，再选择对应的 SRT 文件'),
+            const Text('选择包含 MP3+SRT 配对的文件夹'),
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: _importing ? null : _importFiles,
+              onPressed: _importing ? null : _importFolder,
               icon: _importing
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : const Icon(Icons.upload_file),
-              label: Text(_importing ? '导入中...' : '选择音频文件'),
+              label: Text(_importing ? '导入中...' : '选择文件夹'),
             ),
           ],
         ),
