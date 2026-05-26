@@ -60,11 +60,11 @@ class PlayerNotifier extends AsyncNotifier<PlayerState> {
   void _listenToAudioEvents() {
     _positionSub = _audioService!.positionStream.listen((pos) {
       final current = state.value;
-      if (current == null) return;
+      if (current == null || _currentEndMs == null) return;
 
-      if (_currentEndMs != null && pos.inMilliseconds >= _currentEndMs! - 50) {
-        // Clamp position to sentence end so progress bar reaches 100%
-        state = AsyncData(current.copyWith(positionMs: _currentEndMs!));
+      if (pos.inMilliseconds >= _currentEndMs! - 50) {
+        _currentEndMs = null;
+        state = AsyncData(current.copyWith(positionMs: pos.inMilliseconds));
         _onSentenceComplete();
         return;
       }
@@ -98,6 +98,7 @@ class PlayerNotifier extends AsyncNotifier<PlayerState> {
     } else if (current.continuousPlay && current.currentSentenceIndex < current.sentences.length - 1) {
       playSentence(current.currentSentenceIndex + 1);
     } else {
+      _audioService?.pause();
       state = AsyncData(current.copyWith(status: PlayerPlaybackStatus.idle));
     }
   }
@@ -106,11 +107,12 @@ class PlayerNotifier extends AsyncNotifier<PlayerState> {
     final current = state.value;
     if (current == null) return;
 
-    if (current.status == PlayerPlaybackStatus.playing ||
-        current.status == PlayerPlaybackStatus.looping) {
+    final audioState = _audioService!.state;
+
+    if (audioState == PlayerPlaybackState.playing || audioState == PlayerPlaybackState.looping) {
       await _audioService!.pause();
       state = AsyncData(current.copyWith(status: PlayerPlaybackStatus.paused));
-    } else if (current.status == PlayerPlaybackStatus.paused) {
+    } else if (audioState == PlayerPlaybackState.paused) {
       await _audioService!.play();
       state = AsyncData(current.copyWith(
         status: current.looping ? PlayerPlaybackStatus.looping : PlayerPlaybackStatus.playing,
