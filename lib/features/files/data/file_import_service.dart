@@ -8,10 +8,13 @@ import '../../../models/audio_file.dart';
 import '../../../models/sentence.dart';
 
 class FileImportResult {
-  final AudioFile audioFile;
+  final AudioFile? audioFile;
   final List<SrtParseError> errors;
+  final String? duplicateName;
 
-  FileImportResult({required this.audioFile, this.errors = const []});
+  FileImportResult({this.audioFile, this.errors = const [], this.duplicateName});
+
+  bool get isDuplicate => duplicateName != null;
 }
 
 class FileImportService {
@@ -30,6 +33,12 @@ class FileImportService {
     final audioFile = audioResult.files.first;
     final audioPath = audioFile.path!;
     final fileName = p.basenameWithoutExtension(audioPath);
+
+    // Skip if audio with same name already exists
+    final existingFiles = await _audioFileRepo.getAll();
+    if (existingFiles.any((f) => f.fileName == fileName)) {
+      return FileImportResult(duplicateName: fileName);
+    }
 
     final audioDir = p.dirname(audioPath);
     final srtPath = p.join(audioDir, '$fileName.srt');

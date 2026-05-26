@@ -25,6 +25,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       );
       final result = await importService.importAudioWithSrt();
       if (result != null) {
+        if (result.isDuplicate) {
+          Fluttertoast.showToast(msg: '「${result.duplicateName}」已存在，已跳过导入');
+          return;
+        }
         if (result.errors.isNotEmpty) {
           Fluttertoast.showToast(
             msg: '导入完成，${result.errors.length} 条字幕解析异常',
@@ -32,7 +36,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           );
         }
         ref.invalidate(audioFileListProvider);
-        context.go('/player/${result.audioFile.id}');
+        context.go('/player/${result.audioFile!.id}');
       }
     } catch (e) {
       Fluttertoast.showToast(msg: '导入失败：$e');
