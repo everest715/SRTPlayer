@@ -46,6 +46,9 @@ class AudioPlayerService {
   }
 
   Future<void> playSegment(int startMs, int endMs) async {
+    if (_player.playing) {
+      await _player.pause();
+    }
     await _player.seek(Duration(milliseconds: startMs));
     _state = _looping ? PlayerPlaybackState.looping : PlayerPlaybackState.playing;
     await _player.play();

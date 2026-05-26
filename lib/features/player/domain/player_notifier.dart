@@ -79,8 +79,9 @@ class PlayerNotifier extends AsyncNotifier<PlayerState> {
     if (current == null || index < 0 || index >= current.sentences.length) return;
 
     final sentence = current.sentences[index];
-    _currentEndMs = sentence.endTimeMs;
+    _currentEndMs = null;
     await _audioService!.playSegment(sentence.startTimeMs, sentence.endTimeMs);
+    _currentEndMs = sentence.endTimeMs;
 
     state = AsyncData(current.copyWith(
       currentSentenceIndex: index,
