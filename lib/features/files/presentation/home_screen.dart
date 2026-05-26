@@ -36,7 +36,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           );
         }
         ref.invalidate(audioFileListProvider);
-        context.go('/player/${result.audioFile!.id}');
+        context.push('/player/${result.audioFile!.id}');
       }
     } catch (e) {
       Fluttertoast.showToast(msg: '导入失败：$e');
@@ -91,7 +91,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             itemCount: files.length,
             itemBuilder: (context, index) {
               final file = files[index];
-              return _AudioFileListTile(file: file, onTap: () => context.go('/player/${file.id}'));
+              return _AudioFileListTile(file: file, onTap: () => context.push('/player/${file.id}'));
             },
           );
         },
