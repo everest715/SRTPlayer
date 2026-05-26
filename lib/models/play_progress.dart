@@ -12,12 +12,13 @@ class PlayProgress {
   });
 
   Map<String, dynamic> toMap() {
-    return {
-      'id': id,
+    final map = <String, dynamic>{
       'audioFileId': audioFileId,
       'sentenceIdx': sentenceIdx,
       'positionMs': positionMs,
     };
+    if (id != null) map['id'] = id;
+    return map;
   }
 
   factory PlayProgress.fromMap(Map<String, dynamic> map) {

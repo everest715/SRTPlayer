@@ -10,11 +10,12 @@ class SpeedSetting {
   });
 
   Map<String, dynamic> toMap() {
-    return {
-      'id': id,
+    final map = <String, dynamic>{
       'audioFileId': audioFileId,
       'speed': speed,
     };
+    if (id != null) map['id'] = id;
+    return map;
   }
 
   factory SpeedSetting.fromMap(Map<String, dynamic> map) {

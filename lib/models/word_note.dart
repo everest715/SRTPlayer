@@ -16,13 +16,14 @@ class WordNote {
   });
 
   Map<String, dynamic> toMap() {
-    return {
-      'id': id,
+    final map = <String, dynamic>{
       'sentenceId': sentenceId,
       'word': word,
       'definition': definition,
       'source': source.name,
     };
+    if (id != null) map['id'] = id;
+    return map;
   }
 
   factory WordNote.fromMap(Map<String, dynamic> map) {

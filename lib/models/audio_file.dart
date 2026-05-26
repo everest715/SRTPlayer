@@ -18,8 +18,7 @@ class AudioFile {
   });
 
   Map<String, dynamic> toMap() {
-    return {
-      'id': id,
+    final map = <String, dynamic>{
       'fileName': fileName,
       'audioUri': audioUri,
       'srtUri': srtUri,
@@ -27,6 +26,8 @@ class AudioFile {
       'lastPlayedAt': lastPlayedAt?.toIso8601String(),
       'status': status,
     };
+    if (id != null) map['id'] = id;
+    return map;
   }
 
   factory AudioFile.fromMap(Map<String, dynamic> map) {

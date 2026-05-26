@@ -20,22 +20,23 @@ class Sentence {
   });
 
   Map<String, dynamic> toMap() {
-    return {
-      'id': id,
+    final map = <String, dynamic>{
       'audioFileId': audioFileId,
-      'index': index,
+      'idx': index,
       'startTimeMs': startTimeMs,
       'endTimeMs': endTimeMs,
       'text': text,
       'markStatus': markStatus.name,
     };
+    if (id != null) map['id'] = id;
+    return map;
   }
 
   factory Sentence.fromMap(Map<String, dynamic> map) {
     return Sentence(
       id: map['id'] as int?,
       audioFileId: map['audioFileId'] as int,
-      index: map['index'] as int,
+      index: map['idx'] as int,
       startTimeMs: map['startTimeMs'] as int,
       endTimeMs: map['endTimeMs'] as int,
       text: map['text'] as String,

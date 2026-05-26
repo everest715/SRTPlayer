@@ -102,25 +102,64 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-class _AudioFileListTile extends StatelessWidget {
+class _AudioFileListTile extends ConsumerWidget {
   final AudioFile file;
   final VoidCallback onTap;
 
   const _AudioFileListTile({required this.file, required this.onTap});
 
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(
-        file.status == 'offline' ? Icons.cloud_off : Icons.audiotrack,
-        color: file.status == 'offline' ? Colors.grey : null,
+  Future<bool> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('删除确认'),
+        content: Text('确定要删除「${file.fileName}」吗？\n相关字幕、进度和笔记将一并删除。'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('取消')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('删除'),
+          ),
+        ],
       ),
-      title: Text(file.fileName),
-      subtitle: file.lastPlayedAt != null
-          ? Text('上次：${file.lastPlayedAt!.month}/${file.lastPlayedAt!.day} ${file.lastPlayedAt!.hour}:${file.lastPlayedAt!.minute.toString().padLeft(2, '0')}')
-          : null,
-      trailing: const Icon(Icons.chevron_right),
-      onTap: file.status == 'offline' ? null : onTap,
+    );
+    if (confirmed == true) {
+      await ref.read(audioFileRepositoryProvider).delete(file.id!);
+      ref.invalidate(audioFileListProvider);
+      return true;
+    }
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Dismissible(
+      key: ValueKey(file.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        color: Colors.red,
+        child: const Icon(Icons.delete, color: Colors.white),
+      ),
+      confirmDismiss: (_) => _confirmDelete(context, ref),
+      onDismissed: (_) {},
+      child: ListTile(
+        leading: Icon(
+          file.status == 'offline' ? Icons.cloud_off : Icons.audiotrack,
+          color: file.status == 'offline' ? Colors.grey : null,
+        ),
+        title: Text(file.fileName),
+        subtitle: file.lastPlayedAt != null
+            ? Text('上次：${file.lastPlayedAt!.month}/${file.lastPlayedAt!.day} ${file.lastPlayedAt!.hour}:${file.lastPlayedAt!.minute.toString().padLeft(2, '0')}')
+            : null,
+        trailing: IconButton(
+          icon: const Icon(Icons.delete_outline),
+          onPressed: () => _confirmDelete(context, ref),
+        ),
+        onTap: file.status == 'offline' ? null : onTap,
+      ),
     );
   }
 }
