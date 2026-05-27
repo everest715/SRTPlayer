@@ -20,12 +20,23 @@ class PlayerScreen extends ConsumerStatefulWidget {
 class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _scrolledToResume = false;
+  int _lastSentenceIndex = -1;
 
   @override
   void initState() {
     super.initState();
     Future.microtask(() async {
       await ref.read(playerProvider.notifier).loadFile(widget.audioFileId);
+    });
+    // 监听当前句子索引变化，自动滚动
+    ref.listenManual(playerProvider, (prev, next) {
+      final idx = next.value?.currentSentenceIndex ?? -1;
+      if (idx >= 0 && idx != _lastSentenceIndex) {
+        _lastSentenceIndex = idx;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollToSentence(idx);
+        });
+      }
     });
   }
 
@@ -59,13 +70,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('加载失败：$e')),
         data: (player) {
-          // 首次渲染时滚动到上次播放位置
-          if (!_scrolledToResume && player.currentSentenceIndex > 0) {
-            _scrolledToResume = true;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _scrollToSentence(player.currentSentenceIndex);
-            });
-          }
           return Column(
             children: [
               Expanded(
@@ -81,7 +85,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       isLooping: isCurrent && player.looping,
                       onTap: () {
                         notifier.playSentence(index);
-                        _scrollToSentence(index);
                       },
                       onDoubleTap: () => notifier.toggleLooping(),
                       onLongPress: () => _showSentenceMenu(context, sentence.id),
