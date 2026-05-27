@@ -53,15 +53,20 @@ class _BatchImportScreenState extends ConsumerState<BatchImportScreen> {
         return;
       }
 
-      // 如果未指定目标文件夹，自动以目录名创建 folder
+      // 如果未指定目标文件夹，自动以目录名创建 folder（同名则使用现有）
       int? importFolderId = _selectedFolderId;
       if (importFolderId == null) {
         final folderName = p.basename(folderPath);
         final folderRepo = ref.read(folderRepositoryProvider);
-        final newFolder = await folderRepo.create(
-          Folder(name: folderName, createdAt: DateTime.now()),
-        );
-        importFolderId = newFolder.id;
+        final existing = await folderRepo.getByName(folderName);
+        if (existing != null) {
+          importFolderId = existing.id;
+        } else {
+          final newFolder = await folderRepo.create(
+            Folder(name: folderName, createdAt: DateTime.now()),
+          );
+          importFolderId = newFolder.id;
+        }
       }
 
       final service = BatchImportService(

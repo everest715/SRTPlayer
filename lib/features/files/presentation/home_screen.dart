@@ -72,6 +72,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
     if (name != null && name.isNotEmpty) {
       final repo = ref.read(folderRepositoryProvider);
+      final existing = await repo.getByName(name);
+      if (existing != null) {
+        Fluttertoast.showToast(msg: '文件夹「$name」已存在');
+        return;
+      }
       await repo.create(Folder(name: name, createdAt: DateTime.now()));
       ref.invalidate(folderListProvider);
     }
