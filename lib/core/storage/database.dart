@@ -16,8 +16,16 @@ class AppDatabase {
 
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
+        await db.execute('''
+          CREATE TABLE folders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            createdAt TEXT NOT NULL,
+            sortOrder INTEGER NOT NULL DEFAULT 0
+          )
+        ''');
         await db.execute('''
           CREATE TABLE audio_files (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,7 +34,9 @@ class AppDatabase {
             srtUri TEXT,
             createdAt TEXT NOT NULL,
             lastPlayedAt TEXT,
-            status TEXT NOT NULL DEFAULT 'normal'
+            status TEXT NOT NULL DEFAULT 'normal',
+            folderId INTEGER,
+            FOREIGN KEY (folderId) REFERENCES folders(id) ON DELETE CASCADE
           )
         ''');
         await db.execute('''
@@ -74,6 +84,43 @@ class AppDatabase {
         await db.execute(
           'CREATE INDEX idx_word_notes_sentence ON word_notes(sentenceId)',
         );
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          // Create folders table
+          await db.execute('''
+            CREATE TABLE folders (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT NOT NULL,
+              createdAt TEXT NOT NULL,
+              sortOrder INTEGER NOT NULL DEFAULT 0
+            )
+          ''');
+          // Rename audio_files to audio_files_old
+          await db.execute('ALTER TABLE audio_files RENAME TO audio_files_old');
+          // Create new audio_files with folderId column
+          await db.execute('''
+            CREATE TABLE audio_files (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              fileName TEXT NOT NULL,
+              audioUri TEXT NOT NULL,
+              srtUri TEXT,
+              createdAt TEXT NOT NULL,
+              lastPlayedAt TEXT,
+              status TEXT NOT NULL DEFAULT 'normal',
+              folderId INTEGER,
+              FOREIGN KEY (folderId) REFERENCES folders(id) ON DELETE CASCADE
+            )
+          ''');
+          // Copy data from old to new (folderId will be NULL for existing records)
+          await db.execute('''
+            INSERT INTO audio_files (id, fileName, audioUri, srtUri, createdAt, lastPlayedAt, status)
+            SELECT id, fileName, audioUri, srtUri, createdAt, lastPlayedAt, status
+            FROM audio_files_old
+          ''');
+          // Drop the old table
+          await db.execute('DROP TABLE audio_files_old');
+        }
       },
     );
   }
