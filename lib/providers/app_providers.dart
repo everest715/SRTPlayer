@@ -56,6 +56,11 @@ final folderAudioCountProvider = FutureProvider.family<int, int>((ref, folderId)
   return repo.getAudioCount(folderId);
 });
 
+final audioCompletedProvider = FutureProvider.family<bool, int>((ref, audioFileId) {
+  final repo = ref.read(sentenceRepositoryProvider);
+  return repo.isAllCompleted(audioFileId);
+});
+
 final audioFileListProvider = FutureProvider<List<AudioFile>>((ref) {
   final repo = ref.read(audioFileRepositoryProvider);
   return repo.getByFolderId(null).then((list) => list..sort((a, b) => a.fileName.compareTo(b.fileName)));

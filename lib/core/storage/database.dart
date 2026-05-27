@@ -16,7 +16,7 @@ class AppDatabase {
 
     return openDatabase(
       path,
-      version: 3,
+      version: 4,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -52,6 +52,7 @@ class AppDatabase {
             endTimeMs INTEGER NOT NULL,
             text TEXT NOT NULL,
             markStatus TEXT NOT NULL DEFAULT 'none',
+            completed INTEGER NOT NULL DEFAULT 0,
             FOREIGN KEY (audioFileId) REFERENCES audio_files(id) ON DELETE CASCADE
           )
         ''');
@@ -128,6 +129,9 @@ class AppDatabase {
         }
         if (oldVersion < 3) {
           await db.execute('ALTER TABLE audio_files ADD COLUMN durationMs INTEGER');
+        }
+        if (oldVersion < 4) {
+          await db.execute('ALTER TABLE sentences ADD COLUMN completed INTEGER NOT NULL DEFAULT 0');
         }
       },
     );

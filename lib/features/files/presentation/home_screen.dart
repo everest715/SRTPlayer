@@ -287,6 +287,9 @@ class _AudioFileListTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final completedAsync = ref.watch(audioCompletedProvider(file.id!));
+    final isCompleted = completedAsync.valueOrNull ?? false;
+
     return Dismissible(
       key: ValueKey(file.id),
       direction: DismissDirection.endToStart,
@@ -300,8 +303,16 @@ class _AudioFileListTile extends ConsumerWidget {
       onDismissed: (_) {},
       child: ListTile(
         leading: Icon(
-          file.status == 'offline' ? Icons.cloud_off : Icons.audiotrack,
-          color: file.status == 'offline' ? Colors.grey : null,
+          file.status == 'offline'
+              ? Icons.cloud_off
+              : isCompleted
+                  ? Icons.check_circle
+                  : Icons.audiotrack,
+          color: file.status == 'offline'
+              ? Colors.grey
+              : isCompleted
+                  ? Colors.green
+                  : null,
         ),
         title: Text(file.fileName),
         subtitle: file.lastPlayedAt != null

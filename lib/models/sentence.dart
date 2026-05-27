@@ -8,6 +8,7 @@ class Sentence {
   final int endTimeMs;
   final String text;
   final MarkStatus markStatus;
+  final bool completed;
 
   static final _htmlTagRegex = RegExp(r'<[^>]+>');
 
@@ -19,6 +20,7 @@ class Sentence {
     required this.endTimeMs,
     required String text,
     this.markStatus = MarkStatus.none,
+    this.completed = false,
   }) : text = text.replaceAll(_htmlTagRegex, '');
 
   Map<String, dynamic> toMap() {
@@ -29,6 +31,7 @@ class Sentence {
       'endTimeMs': endTimeMs,
       'text': text,
       'markStatus': markStatus.name,
+      'completed': completed ? 1 : 0,
     };
     if (id != null) map['id'] = id;
     return map;
@@ -46,6 +49,7 @@ class Sentence {
         (e) => e.name == map['markStatus'],
         orElse: () => MarkStatus.none,
       ),
+      completed: (map['completed'] as int?) == 1,
     );
   }
 
@@ -57,6 +61,7 @@ class Sentence {
     int? endTimeMs,
     String? text,
     MarkStatus? markStatus,
+    bool? completed,
   }) {
     return Sentence(
       id: id ?? this.id,
@@ -66,6 +71,7 @@ class Sentence {
       endTimeMs: endTimeMs ?? this.endTimeMs,
       text: text ?? this.text,
       markStatus: markStatus ?? this.markStatus,
+      completed: completed ?? this.completed,
     );
   }
 }

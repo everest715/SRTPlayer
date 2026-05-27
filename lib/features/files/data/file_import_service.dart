@@ -49,7 +49,9 @@ class FileImportService {
     if (File(srtPath).existsSync()) {
       srtUri = srtPath;
       srtContent = await File(srtPath).readAsString();
-    } else {
+    }
+
+    if (srtContent == null) {
       final srtResult = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['srt'],
@@ -98,4 +100,6 @@ class FileImportService {
 
     return FileImportResult(audioFile: savedFile, errors: parseResult.errors);
   }
+
+
 }

@@ -19,8 +19,12 @@ class PlayerScreen extends ConsumerStatefulWidget {
 
 class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   final ScrollController _scrollController = ScrollController();
-  bool _scrolledToResume = false;
   int _lastSentenceIndex = -1;
+  final Map<int, GlobalKey> _cardKeys = {};
+
+  GlobalKey _getCardKey(int index) {
+    return _cardKeys.putIfAbsent(index, () => GlobalKey());
+  }
 
   @override
   void initState() {
@@ -41,11 +45,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   }
 
   void _scrollToSentence(int index) {
-    if (!_scrollController.hasClients) return;
-    const cardHeight = 72.0;
-    final offset = index * cardHeight - MediaQuery.of(context).size.height / 3;
-    _scrollController.animateTo(
-      offset.clamp(0.0, _scrollController.position.maxScrollExtent),
+    final key = _cardKeys[index];
+    if (key == null) return;
+    final context = key.currentContext;
+    if (context == null) return;
+    Scrollable.ensureVisible(
+      context,
+      alignment: 0.3,
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
     );
@@ -74,6 +80,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     final sentence = player.sentences[index];
                     final isCurrent = index == player.currentSentenceIndex;
                     return SentenceCard(
+                      key: _getCardKey(index),
                       sentence: sentence,
                       isCurrent: isCurrent,
                       isLooping: isCurrent && player.looping,

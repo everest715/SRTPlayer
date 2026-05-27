@@ -39,4 +39,23 @@ class SentenceRepository {
       whereArgs: [sentenceId],
     );
   }
+
+  Future<void> markCompleted(int sentenceId) async {
+    final db = await _db();
+    await db.update(
+      'sentences',
+      {'completed': 1},
+      where: 'id = ?',
+      whereArgs: [sentenceId],
+    );
+  }
+
+  Future<bool> isAllCompleted(int audioFileId) async {
+    final db = await _db();
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) AS cnt FROM sentences WHERE audioFileId = ? AND completed = 0',
+      [audioFileId],
+    );
+    return (result.first['cnt'] as int) == 0;
+  }
 }

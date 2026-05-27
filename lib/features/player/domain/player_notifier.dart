@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/audio/audio_player_service.dart';
+import '../../../models/sentence.dart';
 import '../../../providers/app_providers.dart';
 import 'player_state.dart';
 
@@ -120,8 +121,21 @@ class PlayerNotifier extends AsyncNotifier<PlayerState> {
   }
 
   Future<void> _onSentenceComplete() async {
-    final current = state.value;
+    var current = state.value;
     if (current == null) return;
+
+    // Mark current sentence as completed
+    final completedSentence = current.sentences[current.currentSentenceIndex];
+    final sentenceRepo = ref.read(sentenceRepositoryProvider);
+    await sentenceRepo.markCompleted(completedSentence.id!);
+
+    final updatedSentences = List<Sentence>.from(current.sentences);
+    updatedSentences[current.currentSentenceIndex] = completedSentence.copyWith(completed: true);
+    current = current.copyWith(sentences: updatedSentences);
+    state = AsyncData(current);
+
+    // Invalidate completion provider so home screen icon updates
+    ref.invalidate(audioCompletedProvider(current.audioFileId));
 
     if (current.looping) {
       await playSentence(current.currentSentenceIndex);

@@ -25,9 +25,11 @@ class SentenceCard extends StatelessWidget {
     final bgColor = isCurrent
         ? theme.colorScheme.primaryContainer
         : theme.cardColor;
-    final textColor = isCurrent
-        ? theme.colorScheme.onPrimaryContainer
-        : theme.colorScheme.onSurface;
+    final textColor = sentence.completed
+        ? theme.disabledColor
+        : isCurrent
+            ? theme.colorScheme.onPrimaryContainer
+            : theme.colorScheme.onSurface;
 
     return Card(
       color: bgColor,
