@@ -3,12 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path/path.dart' as p;
 import 'package:permission_handler/permission_handler.dart';
 import '../../../providers/app_providers.dart';
+import '../../../models/folder.dart';
 import '../data/batch_import_service.dart';
 
 class BatchImportScreen extends ConsumerStatefulWidget {
-  const BatchImportScreen({super.key});
+  final int? targetFolderId;
+
+  const BatchImportScreen({super.key, this.targetFolderId});
 
   @override
   ConsumerState<BatchImportScreen> createState() => _BatchImportScreenState();
@@ -16,14 +20,19 @@ class BatchImportScreen extends ConsumerStatefulWidget {
 
 class _BatchImportScreenState extends ConsumerState<BatchImportScreen> {
   bool _importing = false;
+  int? _selectedFolderId;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedFolderId = widget.targetFolderId;
+  }
 
   Future<bool> _requestStoragePermission() async {
-    // Android 13+ uses READ_MEDIA_AUDIO
     if (await Permission.audio.status.isGranted) return true;
     final result = await Permission.audio.request();
     if (result.isGranted) return true;
 
-    // Fallback for Android 12 and below
     if (await Permission.storage.status.isGranted) return true;
     final fallback = await Permission.storage.request();
     return fallback.isGranted;
@@ -44,13 +53,28 @@ class _BatchImportScreenState extends ConsumerState<BatchImportScreen> {
         return;
       }
 
+      // 如果未指定目标文件夹，自动以目录名创建 folder
+      int? importFolderId = _selectedFolderId;
+      if (importFolderId == null) {
+        final folderName = p.basename(folderPath);
+        final folderRepo = ref.read(folderRepositoryProvider);
+        final newFolder = await folderRepo.create(
+          Folder(name: folderName, createdAt: DateTime.now()),
+        );
+        importFolderId = newFolder.id;
+      }
+
       final service = BatchImportService(
         ref.read(audioFileRepositoryProvider),
         ref.read(sentenceRepositoryProvider),
       );
-      final importResult = await service.importFolder(folderPath);
+      final importResult = await service.importFolder(folderPath, folderId: importFolderId);
 
       ref.invalidate(audioFileListProvider);
+      ref.invalidate(folderListProvider);
+      if (importFolderId != null) {
+        ref.invalidate(folderAudioCountProvider(importFolderId));
+      }
 
       if (mounted) {
         final skipMsg = importResult.skippedCount > 0 ? '，${importResult.skippedCount} 已存在跳过' : '';
@@ -102,21 +126,25 @@ class _BatchImportScreenState extends ConsumerState<BatchImportScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('批量导入')),
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.folder_open, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            const Text('选择包含 MP3+SRT 配对的文件夹'),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: _importing ? null : _importFolder,
-              icon: _importing
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Icon(Icons.upload_file),
-              label: Text(_importing ? '导入中...' : '选择文件夹'),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.folder_open, size: 64, color: Colors.grey),
+              const SizedBox(height: 16),
+              const Text('选择包含 MP3+SRT 配对的文件夹'),
+              const SizedBox(height: 24),
+              const SizedBox(height: 8),
+              FilledButton.icon(
+                onPressed: _importing ? null : _importFolder,
+                icon: _importing
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.upload_file),
+                label: Text(_importing ? '导入中...' : '选择文件夹'),
+              ),
+            ],
+          ),
         ),
       ),
     );
