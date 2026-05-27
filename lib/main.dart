@@ -13,6 +13,6 @@ void main() async {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
   }
-  await AppDatabase.instance;
   runApp(const ProviderScope(child: SrtPlayerApp()));
+  AppDatabase.instance;
 }
