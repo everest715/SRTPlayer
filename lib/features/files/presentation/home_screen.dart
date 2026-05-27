@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../../../models/audio_file.dart';
+import '../../../models/folder.dart';
 import '../../../providers/app_providers.dart';
 import '../data/file_import_service.dart';
 
@@ -15,6 +16,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _importing = false;
+  int? _dragOverFolderId;
 
   Future<void> _importFile() async {
     setState(() => _importing = true);
@@ -45,9 +47,65 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  Future<void> _createFolder() async {
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        final controller = TextEditingController();
+        return AlertDialog(
+          title: const Text('新建文件夹'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(hintText: '文件夹名称'),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(null), child: const Text('取消')),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+              child: const Text('创建'),
+            ),
+          ],
+        );
+      },
+    );
+    if (name != null && name.isNotEmpty) {
+      final repo = ref.read(folderRepositoryProvider);
+      await repo.create(Folder(name: name, createdAt: DateTime.now()));
+      ref.invalidate(folderListProvider);
+    }
+  }
+
+  Future<bool> _confirmDeleteFolder(Folder folder, int audioCount) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('删除确认'),
+        content: Text('确定要删除文件夹「${folder.name}」吗？\n其中的 $audioCount 个音频将一并删除。'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('取消')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      final repo = ref.read(folderRepositoryProvider);
+      await repo.delete(folder.id!);
+      ref.invalidate(folderListProvider);
+      ref.invalidate(audioFileListProvider);
+      return true;
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final filesAsync = ref.watch(audioFileListProvider);
+    final foldersAsync = ref.watch(folderListProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -57,9 +115,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             onSelected: (value) {
               if (value == 'batch') {
                 context.go('/batch-import');
+              } else if (value == 'new_folder') {
+                _createFolder();
               }
             },
             itemBuilder: (_) => [
+              const PopupMenuItem(value: 'new_folder', child: Text('新建文件夹')),
               const PopupMenuItem(value: 'batch', child: Text('批量导入')),
             ],
           ),
@@ -69,7 +130,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('加载失败：$e')),
         data: (files) {
-          if (files.isEmpty) {
+          final folders = foldersAsync.value ?? [];
+          final hasContent = folders.isNotEmpty || files.isNotEmpty;
+
+          if (!hasContent) {
             return Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -87,21 +151,105 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             );
           }
+
           return ListView.builder(
-            itemCount: files.length,
+            itemCount: folders.length + files.length,
             itemBuilder: (context, index) {
-              final file = files[index];
-              return _AudioFileListTile(file: file, onTap: () => context.push('/player/${file.id}'));
+              if (index < folders.length) {
+                final folder = folders[index];
+                return _buildFolderTile(folder);
+              }
+              final file = files[index - folders.length];
+              return _buildAudioTile(file);
             },
           );
         },
       ),
-      floatingActionButton: filesAsync.value?.isNotEmpty == true
-          ? FloatingActionButton(
-              onPressed: _importing ? null : _importFile,
-              child: const Icon(Icons.add),
-            )
-          : null,
+      floatingActionButton: FloatingActionButton(
+        onPressed: _importing ? null : _importFile,
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  Widget _buildFolderTile(Folder folder) {
+    final countAsync = ref.watch(folderAudioCountProvider(folder.id!));
+    final count = countAsync.valueOrNull ?? 0;
+
+    return DragTarget<int>(
+      onWillAcceptWithDetails: (details) {
+        setState(() => _dragOverFolderId = folder.id);
+        return true;
+      },
+      onLeave: (_) {
+        setState(() => _dragOverFolderId = null);
+      },
+      onAcceptWithDetails: (details) async {
+        setState(() => _dragOverFolderId = null);
+        await ref.read(audioFileRepositoryProvider).updateFolderId(details.data, folder.id);
+        ref.invalidate(audioFileListProvider);
+        ref.invalidate(folderAudioCountProvider(folder.id!));
+      },
+      builder: (context, candidateData, rejectedData) {
+        final isHovered = _dragOverFolderId == folder.id;
+        return Dismissible(
+          key: ValueKey('folder_${folder.id}'),
+          direction: DismissDirection.endToStart,
+          background: Container(
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 24),
+            color: Colors.red,
+            child: const Icon(Icons.delete, color: Colors.white),
+          ),
+          confirmDismiss: (_) => _confirmDeleteFolder(folder, count),
+          onDismissed: (_) {},
+          child: Container(
+            color: isHovered ? Theme.of(context).colorScheme.primaryContainer : null,
+            child: ListTile(
+              leading: Icon(
+                isHovered ? Icons.folder_open : Icons.folder,
+                color: isHovered ? Theme.of(context).colorScheme.primary : null,
+              ),
+              title: Text(folder.name),
+              subtitle: Text('$count 个音频'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/folder/${folder.id}'),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAudioTile(AudioFile file) {
+    return LongPressDraggable<int>(
+      data: file.id,
+      feedback: Material(
+        elevation: 4,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Theme.of(context).colorScheme.outline),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.audiotrack, size: 20),
+              const SizedBox(width: 8),
+              Text(file.fileName, style: const TextStyle(fontSize: 14)),
+            ],
+          ),
+        ),
+      ),
+      childWhenDragging: Opacity(
+        opacity: 0.5,
+        child: _AudioFileListTile(file: file, onTap: () => context.push('/player/${file.id}')),
+      ),
+      onDragEnd: (_) => setState(() => _dragOverFolderId = null),
+      child: _AudioFileListTile(file: file, onTap: () => context.push('/player/${file.id}')),
     );
   }
 }
