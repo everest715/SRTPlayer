@@ -3,6 +3,7 @@ import '../../features/files/presentation/home_screen.dart';
 import '../../features/player/presentation/player_screen.dart';
 import '../../features/dictation/presentation/dictation_screen.dart';
 import '../../features/batch/presentation/batch_import_screen.dart';
+import '../../features/folders/presentation/folder_detail_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -27,7 +28,16 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/batch-import',
-      builder: (context, state) => const BatchImportScreen(),
+      builder: (context, state) => BatchImportScreen(
+        targetFolderId: state.extra as int?,
+      ),
+    ),
+    GoRoute(
+      path: '/folder/:id',
+      builder: (context, state) {
+        final id = int.parse(state.pathParameters['id']!);
+        return FolderDetailScreen(folderId: id);
+      },
     ),
   ],
 );
