@@ -60,7 +60,6 @@ class PlayerNotifier extends AsyncNotifier<PlayerState> {
   }
 
   void _listenToAudioEvents() {
-    // 监听 just_audio 的实际播放状态，保持 UI 同步
     _playingSub = _audioService!.playingStream.listen((isPlaying) {
       if (_transitioning) return;
       final current = state.value;
@@ -98,7 +97,6 @@ class PlayerNotifier extends AsyncNotifier<PlayerState> {
     _currentEndMs = null;
     _transitioning = true;
 
-    // 立即更新 UI 状态
     state = AsyncData(current.copyWith(
       currentSentenceIndex: index,
       status: current.looping ? PlayerPlaybackStatus.looping : PlayerPlaybackStatus.playing,
@@ -109,7 +107,6 @@ class PlayerNotifier extends AsyncNotifier<PlayerState> {
     _transitioning = false;
     _currentEndMs = sentence.endTimeMs;
 
-    // 确保 playSegment 完成后状态与实际一致
     final afterPlay = state.value;
     if (afterPlay != null && afterPlay.status != PlayerPlaybackStatus.playing && afterPlay.status != PlayerPlaybackStatus.looping) {
       state = AsyncData(afterPlay.copyWith(
@@ -120,16 +117,16 @@ class PlayerNotifier extends AsyncNotifier<PlayerState> {
     _saveProgress();
   }
 
-  void _onSentenceComplete() {
+  Future<void> _onSentenceComplete() async {
     final current = state.value;
     if (current == null) return;
 
     if (current.looping) {
-      playSentence(current.currentSentenceIndex);
+      await playSentence(current.currentSentenceIndex);
     } else if (current.continuousPlay && current.currentSentenceIndex < current.sentences.length - 1) {
-      playSentence(current.currentSentenceIndex + 1);
+      await playSentence(current.currentSentenceIndex + 1);
     } else {
-      _audioService?.pause();
+      await _audioService?.pause();
       state = AsyncData(current.copyWith(status: PlayerPlaybackStatus.idle));
     }
   }

@@ -63,7 +63,8 @@ class AudioPlayerService {
     }
     await _player.seek(Duration(milliseconds: startMs));
     _state = _looping ? PlayerPlaybackState.looping : PlayerPlaybackState.playing;
-    await _player.play();
+    // 不 await play()：在 Android 上 play() 的 Future 可能永远不返回
+    _player.play();
     _seeking = false;
   }
 
