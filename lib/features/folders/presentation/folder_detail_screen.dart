@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../models/audio_file.dart';
 import '../../../providers/app_providers.dart';
+import '../../../core/utils/format_utils.dart';
 
 class FolderDetailScreen extends ConsumerStatefulWidget {
   final int folderId;
@@ -127,6 +128,9 @@ class _FolderAudioListTile extends ConsumerWidget {
         title: Text(file.fileName),
         subtitle: file.lastPlayedAt != null
             ? Text('上次：${file.lastPlayedAt!.month}/${file.lastPlayedAt!.day} ${file.lastPlayedAt!.hour}:${file.lastPlayedAt!.minute.toString().padLeft(2, '0')}')
+            : null,
+        trailing: file.durationMs != null
+            ? Text(formatDuration(file.durationMs), style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color))
             : null,
         onTap: file.status == 'offline' ? null : onTap,
       ),

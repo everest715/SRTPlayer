@@ -6,6 +6,7 @@ import '../../../models/audio_file.dart';
 import '../../../models/folder.dart';
 import '../../../providers/app_providers.dart';
 import '../data/file_import_service.dart';
+import '../../../core/utils/format_utils.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -305,6 +306,9 @@ class _AudioFileListTile extends ConsumerWidget {
         title: Text(file.fileName),
         subtitle: file.lastPlayedAt != null
             ? Text('上次：${file.lastPlayedAt!.month}/${file.lastPlayedAt!.day} ${file.lastPlayedAt!.hour}:${file.lastPlayedAt!.minute.toString().padLeft(2, '0')}')
+            : null,
+        trailing: file.durationMs != null
+            ? Text(formatDuration(file.durationMs), style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color))
             : null,
         onTap: file.status == 'offline' ? null : onTap,
       ),
