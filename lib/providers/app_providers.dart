@@ -9,6 +9,8 @@ import '../core/storage/speed_setting_repository.dart';
 import '../core/storage/word_note_repository.dart';
 import '../core/audio/audio_player_service.dart';
 import '../models/audio_file.dart';
+import '../core/storage/folder_repository.dart';
+import '../models/folder.dart';
 
 final databaseProvider = FutureProvider<Database>((ref) => AppDatabase.instance);
 
@@ -40,9 +42,23 @@ final audioPlayerServiceProvider = Provider<AudioPlayerService>((ref) {
 
 final currentAudioFileProvider = StateProvider<int?>((ref) => null);
 
+final folderRepositoryProvider = Provider<FolderRepository>((ref) {
+  return FolderRepository();
+});
+
+final folderListProvider = FutureProvider<List<Folder>>((ref) {
+  final repo = ref.read(folderRepositoryProvider);
+  return repo.getAll();
+});
+
+final folderAudioCountProvider = FutureProvider.family<int, int>((ref, folderId) {
+  final repo = ref.read(folderRepositoryProvider);
+  return repo.getAudioCount(folderId);
+});
+
 final audioFileListProvider = FutureProvider<List<AudioFile>>((ref) {
   final repo = ref.read(audioFileRepositoryProvider);
-  return repo.getAll().then((list) => list..sort((a, b) => a.fileName.compareTo(b.fileName)));
+  return repo.getByFolderId(null).then((list) => list..sort((a, b) => a.fileName.compareTo(b.fileName)));
 });
 
 final continuousPlayProvider = StateNotifierProvider<ContinuousPlayNotifier, bool>((ref) {
