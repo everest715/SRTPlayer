@@ -42,7 +42,7 @@ final currentAudioFileProvider = StateProvider<int?>((ref) => null);
 
 final audioFileListProvider = FutureProvider<List<AudioFile>>((ref) {
   final repo = ref.read(audioFileRepositoryProvider);
-  return repo.getAll();
+  return repo.getAll().then((list) => list..sort((a, b) => a.fileName.compareTo(b.fileName)));
 });
 
 final continuousPlayProvider = StateNotifierProvider<ContinuousPlayNotifier, bool>((ref) {
