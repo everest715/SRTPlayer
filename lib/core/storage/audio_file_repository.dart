@@ -36,4 +36,17 @@ class AudioFileRepository {
     final db = await _db();
     await db.delete('audio_files', where: 'id = ?', whereArgs: [id]);
   }
+
+  Future<List<AudioFile>> getByFolderId(int? folderId) async {
+    final db = await _db();
+    final maps = folderId == null
+        ? await db.query('audio_files', where: 'folderId IS NULL', orderBy: 'lastPlayedAt DESC, createdAt DESC')
+        : await db.query('audio_files', where: 'folderId = ?', whereArgs: [folderId], orderBy: 'lastPlayedAt DESC, createdAt DESC');
+    return maps.map((m) => AudioFile.fromMap(m)).toList();
+  }
+
+  Future<void> updateFolderId(int audioFileId, int? folderId) async {
+    final db = await _db();
+    await db.update('audio_files', {'folderId': folderId}, where: 'id = ?', whereArgs: [audioFileId]);
+  }
 }
