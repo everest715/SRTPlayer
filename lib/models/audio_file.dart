@@ -7,6 +7,7 @@ class AudioFile {
   final DateTime? lastPlayedAt;
   final String status; // 'normal' | 'offline'
   final int? folderId;
+  final int? durationMs;
 
   AudioFile({
     this.id,
@@ -17,6 +18,7 @@ class AudioFile {
     this.lastPlayedAt,
     this.status = 'normal',
     this.folderId,
+    this.durationMs,
   });
 
   Map<String, dynamic> toMap() {
@@ -28,6 +30,7 @@ class AudioFile {
       'lastPlayedAt': lastPlayedAt?.toIso8601String(),
       'status': status,
       'folderId': folderId,
+      'durationMs': durationMs,
     };
     if (id != null) map['id'] = id;
     return map;
@@ -45,6 +48,7 @@ class AudioFile {
           : null,
       status: map['status'] as String? ?? 'normal',
       folderId: map['folderId'] as int?,
+      durationMs: map['durationMs'] as int?,
     );
   }
 
@@ -57,6 +61,7 @@ class AudioFile {
     DateTime? lastPlayedAt,
     String? status,
     int? folderId,
+    int? durationMs,
   }) {
     return AudioFile(
       id: id ?? this.id,
@@ -67,6 +72,7 @@ class AudioFile {
       lastPlayedAt: lastPlayedAt ?? this.lastPlayedAt,
       status: status ?? this.status,
       folderId: folderId ?? this.folderId,
+      durationMs: durationMs ?? this.durationMs,
     );
   }
 }
