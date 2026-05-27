@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:path/path.dart' as p;
+import 'package:just_audio/just_audio.dart';
 import '../../../core/parser/srt_parser.dart';
 import '../../../core/storage/audio_file_repository.dart';
 import '../../../core/storage/sentence_repository.dart';
@@ -65,12 +66,23 @@ class BatchImportService {
           continue;
         }
 
+        int? durationMs;
+        try {
+          final tmpPlayer = AudioPlayer();
+          await tmpPlayer.setFilePath(mp3File.path);
+          durationMs = tmpPlayer.duration?.inMilliseconds;
+          await tmpPlayer.dispose();
+        catch (_) {
+          // 获取时长失败不影响导入
+        }
+
         final dbFile = await _audioFileRepo.create(AudioFile(
           fileName: fileName,
           audioUri: mp3File.path,
           srtUri: srtPath,
           createdAt: DateTime.now(),
           folderId: folderId,
+          durationMs: durationMs,
         ));
 
         await _sentenceRepo.saveAll(parseResult.entries.map((e) => Sentence(
