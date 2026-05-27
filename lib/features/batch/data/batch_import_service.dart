@@ -21,7 +21,7 @@ class BatchImportService {
 
   BatchImportService(this._audioFileRepo, this._sentenceRepo);
 
-  Future<BatchImportResult> importFolder(String folderPath) async {
+  Future<BatchImportResult> importFolder(String folderPath, {int? folderId}) async {
     int success = 0;
     int fail = 0;
     int skipped = 0;
@@ -70,6 +70,7 @@ class BatchImportService {
           audioUri: mp3File.path,
           srtUri: srtPath,
           createdAt: DateTime.now(),
+          folderId: folderId,
         ));
 
         await _sentenceRepo.saveAll(parseResult.entries.map((e) => Sentence(
