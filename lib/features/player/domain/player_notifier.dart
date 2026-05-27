@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/audio/audio_player_service.dart';
 import '../../../providers/app_providers.dart';
 import 'player_state.dart';
@@ -54,7 +55,7 @@ class PlayerNotifier extends AsyncNotifier<PlayerState> {
         sentences: sentences,
         currentSentenceIndex: startIdx,
         speed: savedSpeed,
-        continuousPlay: ref.read(continuousPlayProvider),
+        continuousPlay: await SharedPreferences.getInstance().then((p) => p.getBool('continuous_play') ?? true),
       );
     });
   }
