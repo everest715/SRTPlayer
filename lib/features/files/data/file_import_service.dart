@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:path/path.dart' as p;
 import '../../../core/parser/srt_parser.dart';
 import '../../../core/storage/audio_file_repository.dart';
@@ -67,10 +68,21 @@ class FileImportService {
       throw Exception('SRT 解析失败：没有有效的字幕条目');
     }
 
+    int? durationMs;
+    try {
+      final tmpPlayer = AudioPlayer();
+      await tmpPlayer.setFilePath(audioPath);
+      durationMs = tmpPlayer.duration?.inMilliseconds;
+      await tmpPlayer.dispose();
+    } catch (_) {
+      // 获取时长失败不影响导入
+    }
+
     final dbAudioFile = AudioFile(
       fileName: fileName,
       audioUri: audioPath,
       srtUri: srtUri,
+      durationMs: durationMs,
       createdAt: DateTime.now(),
     );
     final savedFile = await _audioFileRepo.create(dbAudioFile);
