@@ -72,7 +72,7 @@ class BatchImportService {
           await tmpPlayer.setFilePath(mp3File.path);
           durationMs = tmpPlayer.duration?.inMilliseconds;
           await tmpPlayer.dispose();
-        catch (_) {
+        } catch (_) {
           // 获取时长失败不影响导入
         }
 
