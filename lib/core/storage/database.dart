@@ -16,7 +16,7 @@ class AppDatabase {
 
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -39,6 +39,7 @@ class AppDatabase {
             lastPlayedAt TEXT,
             status TEXT NOT NULL DEFAULT 'normal',
             folderId INTEGER,
+            durationMs INTEGER,
             FOREIGN KEY (folderId) REFERENCES folders(id) ON DELETE CASCADE
           )
         ''');
@@ -112,6 +113,7 @@ class AppDatabase {
               lastPlayedAt TEXT,
               status TEXT NOT NULL DEFAULT 'normal',
               folderId INTEGER,
+              durationMs INTEGER,
               FOREIGN KEY (folderId) REFERENCES folders(id) ON DELETE CASCADE
             )
           ''');
@@ -123,6 +125,9 @@ class AppDatabase {
           ''');
           // Drop the old table
           await db.execute('DROP TABLE audio_files_old');
+        }
+        if (oldVersion < 3) {
+          await db.execute('ALTER TABLE audio_files ADD COLUMN durationMs INTEGER');
         }
       },
     );
