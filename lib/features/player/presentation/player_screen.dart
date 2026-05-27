@@ -19,41 +19,13 @@ class PlayerScreen extends ConsumerStatefulWidget {
 
 class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   final ScrollController _scrollController = ScrollController();
-  bool _resumeChecked = false;
+  bool _scrolledToResume = false;
 
   @override
   void initState() {
     super.initState();
     Future.microtask(() async {
       await ref.read(playerProvider.notifier).loadFile(widget.audioFileId);
-
-      if (!_resumeChecked && mounted) {
-        _resumeChecked = true;
-        final progressRepo = ref.read(playProgressRepositoryProvider);
-        final progress = await progressRepo.getByAudioFileId(widget.audioFileId);
-        if (progress != null && progress.sentenceIdx > 0 && mounted) {
-          final shouldResume = await showDialog<bool>(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text('继续播放'),
-              content: Text('从第 ${progress.sentenceIdx + 1} 句继续？'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('从头开始'),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text('继续'),
-                ),
-              ],
-            ),
-          );
-          if (shouldResume == true) {
-            ref.read(playerProvider.notifier).playSentence(progress.sentenceIdx);
-          }
-        }
-      }
     });
   }
 
@@ -87,6 +59,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('加载失败：$e')),
         data: (player) {
+          // 首次渲染时滚动到上次播放位置
+          if (!_scrolledToResume && player.currentSentenceIndex > 0) {
+            _scrolledToResume = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _scrollToSentence(player.currentSentenceIndex);
+            });
+          }
           return Column(
             children: [
               Expanded(
