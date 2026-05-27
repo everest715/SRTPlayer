@@ -9,15 +9,17 @@ class Sentence {
   final String text;
   final MarkStatus markStatus;
 
+  static final _htmlTagRegex = RegExp(r'<[^>]+>');
+
   Sentence({
     this.id,
     required this.audioFileId,
     required this.index,
     required this.startTimeMs,
     required this.endTimeMs,
-    required this.text,
+    required String text,
     this.markStatus = MarkStatus.none,
-  });
+  }) : text = text.replaceAll(_htmlTagRegex, '');
 
   Map<String, dynamic> toMap() {
     final map = <String, dynamic>{
