@@ -4,6 +4,7 @@ enum PlayerPlaybackStatus { idle, playing, paused, looping }
 
 class PlayerState {
   final int audioFileId;
+  final String fileName;
   final List<Sentence> sentences;
   final int currentSentenceIndex;
   final PlayerPlaybackStatus status;
@@ -14,6 +15,7 @@ class PlayerState {
 
   const PlayerState({
     required this.audioFileId,
+    this.fileName = '',
     this.sentences = const [],
     this.currentSentenceIndex = 0,
     this.status = PlayerPlaybackStatus.idle,
@@ -29,6 +31,7 @@ class PlayerState {
   }
 
   PlayerState copyWith({
+    String? fileName,
     List<Sentence>? sentences,
     int? currentSentenceIndex,
     PlayerPlaybackStatus? status,
@@ -39,6 +42,7 @@ class PlayerState {
   }) {
     return PlayerState(
       audioFileId: audioFileId,
+      fileName: fileName ?? this.fileName,
       sentences: sentences ?? this.sentences,
       currentSentenceIndex: currentSentenceIndex ?? this.currentSentenceIndex,
       status: status ?? this.status,

@@ -52,6 +52,7 @@ class PlayerNotifier extends AsyncNotifier<PlayerState> {
 
       return PlayerState(
         audioFileId: audioFileId,
+        fileName: audioFile.fileName,
         sentences: sentences,
         currentSentenceIndex: startIdx,
         speed: savedSpeed,

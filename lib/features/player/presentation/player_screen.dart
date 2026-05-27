@@ -58,13 +58,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('播放中'),
-        actions: [
-          TextButton(
-            onPressed: () => _showSpeedSheet(context),
-            child: Text('${playerAsync.value?.speed ?? 1.0}x'),
-          ),
-        ],
+        title: Text(playerAsync.value?.fileName ?? ''),
       ),
       body: playerAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
